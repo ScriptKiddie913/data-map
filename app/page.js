@@ -6,9 +6,9 @@ import { supabase } from "../lib/supabase"
 export default function Home() {
   const [leaks, setLeaks] = useState([])
   const [session, setSession] = useState(null)
-  const [form, setForm] = useState({ leak: "", group: "", date: "", data: "" })
+  const [form, setForm] = useState({ leak: "", group: "", date: "", data: "", latitude: "", longitude: "" })
   const [editId, setEditId] = useState(null)
-  const [editForm, setEditForm] = useState({ leak: "", group: "", date: "", data: "" })
+  const [editForm, setEditForm] = useState({ leak: "", group: "", date: "", data: "", latitude: "", longitude: "" })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -26,18 +26,35 @@ export default function Home() {
     setLoading(true)
     const { data } = await supabase
       .from("leaks")
-      .select("*")
+      .select("*, ST_AsGeoJSON(location) as location_geojson")
       .order("date", { ascending: false })
     setLeaks(data || [])
     setLoading(false)
+  }
+
+  function parseLocation(item) {
+    if (!item.location_geojson) return { lat: null, lng: null }
+    try {
+      const geo = typeof item.location_geojson === "string"
+        ? JSON.parse(item.location_geojson)
+        : item.location_geojson
+      return { lng: geo.coordinates[0], lat: geo.coordinates[1] }
+    } catch {
+      return { lat: null, lng: null }
+    }
   }
 
   async function addLeak() {
     if (!form.leak || !form.group) return
     const payload = { leak: form.leak, group: form.group, data: form.data }
     if (form.date) payload.date = new Date(form.date).toISOString()
+    const lat = parseFloat(form.latitude)
+    const lng = parseFloat(form.longitude)
+    if (!isNaN(lat) && !isNaN(lng)) {
+      payload.location = `POINT(${lng} ${lat})`
+    }
     await supabase.from("leaks").insert([payload])
-    setForm({ leak: "", group: "", date: "", data: "" })
+    setForm({ leak: "", group: "", date: "", data: "", latitude: "", longitude: "" })
     fetchLeaks()
   }
 
@@ -51,12 +68,25 @@ export default function Home() {
     const localDate = item.date
       ? new Date(item.date).toISOString().slice(0, 16)
       : ""
-    setEditForm({ leak: item.leak, group: item.group, date: localDate, data: item.data || "" })
+    const { lat, lng } = parseLocation(item)
+    setEditForm({
+      leak: item.leak,
+      group: item.group,
+      date: localDate,
+      data: item.data || "",
+      latitude: lat !== null ? String(lat) : "",
+      longitude: lng !== null ? String(lng) : "",
+    })
   }
 
   async function saveEdit() {
     const payload = { leak: editForm.leak, group: editForm.group, data: editForm.data }
     if (editForm.date) payload.date = new Date(editForm.date).toISOString()
+    const lat = parseFloat(editForm.latitude)
+    const lng = parseFloat(editForm.longitude)
+    if (!isNaN(lat) && !isNaN(lng)) {
+      payload.location = `POINT(${lng} ${lat})`
+    }
     await supabase.from("leaks").update(payload).eq("id", editId)
     setEditId(null)
     fetchLeaks()
@@ -138,6 +168,26 @@ export default function Home() {
                   onChange={(e) => setForm({ ...form, data: e.target.value })}
                 />
               </div>
+              <div>
+                <label className="form-label">Latitude</label>
+                <input
+                  type="number"
+                  step="any"
+                  placeholder="e.g. 22.5726"
+                  value={form.latitude}
+                  onChange={(e) => setForm({ ...form, latitude: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="form-label">Longitude</label>
+                <input
+                  type="number"
+                  step="any"
+                  placeholder="e.g. 88.3639"
+                  value={form.longitude}
+                  onChange={(e) => setForm({ ...form, longitude: e.target.value })}
+                />
+              </div>
             </div>
             <div className="form-actions">
               <button onClick={addLeak}>Add Record</button>
@@ -162,6 +212,7 @@ export default function Home() {
             <span>Group</span>
             <span style={{ textAlign: "right" }}>Timestamp</span>
             <span>Data</span>
+            <span>Location</span>
             {session && <span></span>}
           </div>
 
@@ -184,6 +235,14 @@ export default function Home() {
                   </span>
                   <span className="row-date">{formatDate(item.date)}</span>
                   <span className="row-data">{item.data || <span style={{ color: "#7b8a9a", fontStyle: "italic" }}>—</span>}</span>
+                  <span className="row-location">
+                    {(() => {
+                      const { lat, lng } = parseLocation(item)
+                      return lat !== null
+                        ? <span style={{ fontFamily: "monospace", fontSize: "0.85em" }}>{lat}, {lng}</span>
+                        : <span style={{ color: "#7b8a9a", fontStyle: "italic" }}>—</span>
+                    })()}
+                  </span>
                   {session && (
                     <span className="row-actions">
                       <button className="warn" onClick={() => startEdit(item)}>Edit</button>
@@ -226,6 +285,26 @@ export default function Home() {
                           value={editForm.data}
                           placeholder="Data payload"
                           onChange={(e) => setEditForm({ ...editForm, data: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="form-label">Latitude</label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={editForm.latitude}
+                          placeholder="e.g. 22.5726"
+                          onChange={(e) => setEditForm({ ...editForm, latitude: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="form-label">Longitude</label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={editForm.longitude}
+                          placeholder="e.g. 88.3639"
+                          onChange={(e) => setEditForm({ ...editForm, longitude: e.target.value })}
                         />
                       </div>
                       <div className="edit-actions">
