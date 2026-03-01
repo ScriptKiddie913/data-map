@@ -301,6 +301,39 @@ button.warn:hover {
   font-weight: 500;
 }
 
+/* ── Breach Map ── */
+.map-section {
+  background: #121821;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 28px;
+}
+
+.map-heading {
+  font-size: 15px;
+  font-weight: 600;
+  color: #e6edf3;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.map-heading::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 16px;
+  background: linear-gradient(135deg, #4c8dff, #2dd4bf);
+  border-radius: 2px;
+}
+
+/* Override Leaflet tile layer to use dark-compatible defaults */
+.leaflet-container {
+  background: #1b2430;
+}
+
 /* ── Records table ── */
 .records-table {
   background: #121821;

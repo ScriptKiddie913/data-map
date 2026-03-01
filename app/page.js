@@ -1,7 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import dynamic from "next/dynamic"
 import { supabase } from "../lib/supabase"
+
+const BreachMap = dynamic(() => import("./BreachMap"), { ssr: false })
 
 export default function Home() {
   const [leaks, setLeaks] = useState([])
@@ -224,6 +227,13 @@ export default function Home() {
               <span>Total records</span>
               <span className="count-badge">{leaks.length}</span>
             </>
+          )}
+        </div>
+
+        <div className="map-section">
+          <h3 className="map-heading">Breach Map</h3>
+          {!loading && (
+            <BreachMap leaks={leaks} parseLocation={parseLocation} />
           )}
         </div>
 
