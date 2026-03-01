@@ -1,0 +1,25 @@
+body {
+  background: black;
+  color: #00ff9f;
+  font-family: monospace;
+}
+
+input, button {
+  background: black;
+  color: #00ff9f;
+  border: 1px solid #00ff9f;
+  padding: 10px;
+  margin: 5px;
+}
+
+button:hover {
+  background: #00ff9f;
+  color: black;
+  cursor: pointer;
+}
+
+.card {
+  border: 1px solid #00ff9f;
+  padding: 15px;
+  margin: 10px 0;
+}
