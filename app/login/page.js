@@ -14,7 +14,7 @@ export default function Login() {
     setError("")
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (!error) router.push("/")
-    else setError("// ACCESS DENIED: INVALID CREDENTIALS")
+    else setError("Invalid email or password. Please try again.")
   }
 
   function handleKey(e) {
@@ -24,26 +24,35 @@ export default function Login() {
   return (
     <div className="login-wrap">
       <div className="login-box">
-        <h1>☠ ADMIN ACCESS TERMINAL ☠</h1>
-        <div className="sub">AUTHORIZED PERSONNEL ONLY</div>
+        <div className="login-logo">🔐</div>
+        <h1>Welcome back</h1>
+        <div className="sub">Sign in to access the intelligence dashboard</div>
 
-        <input
-          placeholder="USER IDENTIFIER"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          onKeyDown={handleKey}
-          autoComplete="username"
-        />
-        <input
-          type="password"
-          placeholder="ACCESS CODE"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          onKeyDown={handleKey}
-          autoComplete="current-password"
-        />
+        <div className="login-field">
+          <label>Email address</label>
+          <input
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={handleKey}
+            autoComplete="username"
+          />
+        </div>
 
-        <button onClick={login}>[ AUTHENTICATE ]</button>
+        <div className="login-field">
+          <label>Password</label>
+          <input
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={handleKey}
+            autoComplete="current-password"
+          />
+        </div>
+
+        <button onClick={login}>Sign In</button>
 
         {error && <div className="error-msg">{error}</div>}
       </div>
