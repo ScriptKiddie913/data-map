@@ -77,16 +77,25 @@ export default function Home() {
     if (!isNaN(lat) && !isNaN(lng)) {
       payload.location = `POINT(${lng} ${lat})`
     }
-    await supabase.from("leaks").insert([payload])
+    const { error } = await supabase.from("leaks").insert([payload]).select()
+    if (error) {
+      console.error("addLeak error:", error)
+      alert("Failed to add record: " + error.message)
+      return
+    }
     setForm({ leak: "", group: "", date: "", data: "", latitude: "", longitude: "" })
-    fetchLeaks()
+    await fetchLeaks()
   }
 
   async function deleteLeak(id) {
-    const { error } = await supabase.from("leaks").delete().eq("id", id)
+    const { data, error } = await supabase.from("leaks").delete().eq("id", id).select("id")
     if (error) {
       console.error("deleteLeak error:", error)
       alert("Failed to delete record: " + error.message)
+      return
+    }
+    if (!data || data.length === 0) {
+      alert("Delete failed: You may not have permission or the record no longer exists.")
       return
     }
     await fetchLeaks()
@@ -109,19 +118,30 @@ export default function Home() {
   }
 
   async function saveEdit() {
+    if (!editForm.leak || !editForm.group) {
+      alert("Leak and Group fields are required.")
+      return
+    }
     const payload = { leak: editForm.leak, group: editForm.group, data: editForm.data }
     payload.date = editForm.date ? new Date(editForm.date).toISOString() : null
     const lat = parseFloat(editForm.latitude)
     const lng = parseFloat(editForm.longitude)
     if (!isNaN(lat) && !isNaN(lng)) {
       payload.location = `POINT(${lng} ${lat})`
-    } else {
-      payload.location = null
     }
-    const { error } = await supabase.from("leaks").update(payload).eq("id", editId)
+    // Note: omitting location key entirely when empty to avoid PostGIS cast errors
+    const { data, error } = await supabase
+      .from("leaks")
+      .update(payload)
+      .eq("id", editId)
+      .select()
     if (error) {
       console.error("saveEdit error:", error)
       alert("Failed to update record: " + error.message)
+      return
+    }
+    if (!data || data.length === 0) {
+      alert("Update failed: You may not have permission or the record no longer exists.")
       return
     }
     setEditId(null)
