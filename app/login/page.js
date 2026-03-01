@@ -7,34 +7,46 @@ import { useRouter } from "next/navigation"
 export default function Login() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
   const router = useRouter()
 
   async function login() {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-
+    setError("")
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (!error) router.push("/")
-    else alert("Access Denied")
+    else setError("// ACCESS DENIED: INVALID CREDENTIALS")
+  }
+
+  function handleKey(e) {
+    if (e.key === "Enter") login()
   }
 
   return (
-    <div style={{ padding: 50 }}>
-      <h1>☠ ADMIN ACCESS TERMINAL ☠</h1>
+    <div className="login-wrap">
+      <div className="login-box">
+        <h1>☠ ADMIN ACCESS TERMINAL ☠</h1>
+        <div className="sub">AUTHORIZED PERSONNEL ONLY</div>
 
-      <input
-        placeholder="Email"
-        onChange={(e) => setEmail(e.target.value)}
-      />
+        <input
+          placeholder="USER IDENTIFIER"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          onKeyDown={handleKey}
+          autoComplete="username"
+        />
+        <input
+          type="password"
+          placeholder="ACCESS CODE"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          onKeyDown={handleKey}
+          autoComplete="current-password"
+        />
 
-      <input
-        type="password"
-        placeholder="Password"
-        onChange={(e) => setPassword(e.target.value)}
-      />
+        <button onClick={login}>[ AUTHENTICATE ]</button>
 
-      <button onClick={login}>Authenticate</button>
+        {error && <div className="error-msg">{error}</div>}
+      </div>
     </div>
   )
 }
