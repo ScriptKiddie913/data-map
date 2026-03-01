@@ -83,8 +83,13 @@ export default function Home() {
   }
 
   async function deleteLeak(id) {
-    await supabase.from("leaks").delete().eq("id", id)
-    fetchLeaks()
+    const { error } = await supabase.from("leaks").delete().eq("id", id)
+    if (error) {
+      console.error("deleteLeak error:", error)
+      alert("Failed to delete record: " + error.message)
+      return
+    }
+    await fetchLeaks()
   }
 
   function startEdit(item) {
@@ -105,15 +110,22 @@ export default function Home() {
 
   async function saveEdit() {
     const payload = { leak: editForm.leak, group: editForm.group, data: editForm.data }
-    if (editForm.date) payload.date = new Date(editForm.date).toISOString()
+    payload.date = editForm.date ? new Date(editForm.date).toISOString() : null
     const lat = parseFloat(editForm.latitude)
     const lng = parseFloat(editForm.longitude)
     if (!isNaN(lat) && !isNaN(lng)) {
       payload.location = `POINT(${lng} ${lat})`
+    } else {
+      payload.location = null
     }
-    await supabase.from("leaks").update(payload).eq("id", editId)
+    const { error } = await supabase.from("leaks").update(payload).eq("id", editId)
+    if (error) {
+      console.error("saveEdit error:", error)
+      alert("Failed to update record: " + error.message)
+      return
+    }
     setEditId(null)
-    fetchLeaks()
+    await fetchLeaks()
   }
 
   async function logout() {
