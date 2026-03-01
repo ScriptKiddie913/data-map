@@ -24,21 +24,42 @@ export default function Home() {
 
   async function fetchLeaks() {
     setLoading(true)
-    const { data } = await supabase
-      .from("leaks")
-      .select("*, ST_AsGeoJSON(location) as location_geojson")
-      .order("date", { ascending: false })
-    setLeaks(data || [])
+    const pageSize = 1000
+    let allData = []
+    let from = 0
+    while (true) {
+      const { data, error } = await supabase
+        .from("leaks")
+        .select("*")
+        .order("date", { ascending: false })
+        .range(from, from + pageSize - 1)
+      if (error) { console.error("fetchLeaks error:", error); break }
+      if (!data || data.length === 0) break
+      allData = allData.concat(data)
+      if (data.length < pageSize) break
+      from += pageSize
+    }
+    setLeaks(allData)
     setLoading(false)
   }
 
+  // Parses a PostGIS geometry/geography column returned by Supabase as hex-encoded EWKB
   function parseLocation(item) {
-    if (!item.location_geojson) return { lat: null, lng: null }
+    const loc = item.location
+    if (!loc || typeof loc !== "string") return { lat: null, lng: null }
     try {
-      const geo = typeof item.location_geojson === "string"
-        ? JSON.parse(item.location_geojson)
-        : item.location_geojson
-      return { lng: geo.coordinates[0], lat: geo.coordinates[1] }
+      const isLittleEndian = loc.substring(0, 2) === "01"
+      const typeBytes = loc.substring(2, 10).match(/../g).map(b => parseInt(b, 16))
+      const wkbType = isLittleEndian
+        ? (typeBytes[0] | (typeBytes[1] << 8) | (typeBytes[2] << 16) | (typeBytes[3] << 24)) >>> 0
+        : ((typeBytes[0] << 24) | (typeBytes[1] << 16) | (typeBytes[2] << 8) | typeBytes[3]) >>> 0
+      const xOff = (wkbType & 0x20000000) ? 18 : 10
+      const readF64 = (off) => {
+        const b = loc.substring(off, off + 16).match(/../g).map(h => parseInt(h, 16))
+        if (isLittleEndian) b.reverse()
+        return new DataView(new Uint8Array(b).buffer).getFloat64(0)
+      }
+      return { lng: readF64(xOff), lat: readF64(xOff + 16) }
     } catch {
       return { lat: null, lng: null }
     }
